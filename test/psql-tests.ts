@@ -1,7 +1,7 @@
 // tslint:disable:no-console
 
 import { expect } from 'chai';
-import { PSQLDriver } from '../src';
+import {PSQLDriver} from "../src/drivers/psql/PSQLDriver";
 
 const user = 'postgres';
 const password = 'postgres';
@@ -9,7 +9,10 @@ const host = 'localhost';
 const database = '';
 const port = 5432;
 
-describe('PSQL Tests', () => {
+// create table foobar(name varchar(200),age bigint)
+const insertQuery = 'insert into foobar(name, age) values (:name, :age)';
+
+describe('PSQLDriver Tests', () => {
   let psqlDriver: PSQLDriver | undefined;
 
   before(() => {
@@ -18,69 +21,68 @@ describe('PSQL Tests', () => {
 
   after(async () => {
     if (psqlDriver) {
-      await psqlDriver.processSqlDirect('delete from foobar where age > 2');
+      await psqlDriver.processSqlDirect('delete from foobar where age > 0', []);
       await psqlDriver.destroy();
     }
   });
 
-  it('directory sqls', async () => {
-    const con = await psqlDriver?.getConnection();
-    expect(!!con).equals(true);
-  });
-  // it('create database and table', async () => {
-  //   if (!psqlDriver) {
-  //     expect.fail('PSQLDriver not initialized!');
-  //     return;
-  //   }
-  //   const con = await psqlDriver.getConnection();
-  //   expect(!!con).equals(true);
-  //   try {
-  //     await psqlDriver.processSqlDirect('create table foobar(name varchar(200),age bigint)');
-  //   } catch (error) {
-  //     console.error('Error creating database:', error);
-  //   }
-  // });
-
-  it('inserts with directly', async () => {
+  it('Check connection', async () => {
+    expect(!psqlDriver).equals(false);
     if (!psqlDriver) {
       expect.fail('PSQLDriver not initialized!');
-      return;
+    }
+    const con = await psqlDriver.getConnection();
+    expect(!!con).equals(true);
+    if (con) {
+      psqlDriver.returnConnection(con);
+    }
+  });
+
+  it('Direct insertion with connection', async () => {
+    expect(!psqlDriver).equals(false);
+    if (!psqlDriver) {
+      expect.fail('PSQLDriver not initialized!');
     }
     const con = await psqlDriver.getConnection();
     if (con) {
       try {
-        await con.query("insert into foobar(name, age) values ('hans', 4)");
+        await con.query("insert into foobar(name, age) values ('hans', 43)");
         const queryResult = await con.query('select * from foobar');
-        if (queryResult.rowCount) {
-          console.log(queryResult.rows);
+        if (!queryResult.rowCount) {
+          expect.fail('Expected some entries!');
         }
       } catch (e) {
-        console.error('Error creating database:', e);
+        console.error('Tried to select from foobar:', e);
+      } finally {
+        if (con) {
+          psqlDriver.returnConnection(con);
+        }
       }
     }
   });
-  it('inserts with driver', async () => {
+  it('Insert with PSQL Driver (query and parameters)', async () => {
+    expect(!psqlDriver).equals(false);
     if (!psqlDriver) {
       expect.fail('PSQLDriver not initialized!');
     }
-    const con = await psqlDriver.getConnection();
-    expect(!!con).equals(true);
     try {
-      await psqlDriver.processSql('insert into foobar(name, age) values (:name, :age)', { name: 'toni', age: 23 });
+      await psqlDriver.processSql(insertQuery, { name: 'toni', age: 23 });
     } catch (error) {
       console.error('Error creating database:', error);
     }
   });
 
-  it('inserts with driver and transaction', async () => {
+  it('Inserts with PSQL Driver (using transaction)', async () => {
+    expect(!psqlDriver).equals(false);
     if (!psqlDriver) {
       expect.fail('PSQLDriver not initialized!');
     }
     const txId = await psqlDriver.startTransaction();
 
+    let rollBackNeeded = false;
     try {
       await psqlDriver.processSql(
-        'insert into foobar(name, age) values (:name, :age)',
+        insertQuery,
         {
           name: 'toni-trans',
           age: 23
@@ -89,18 +91,58 @@ describe('PSQL Tests', () => {
       );
 
       await psqlDriver.processSql(
-        'insert into foobar(name, age) values (:name, :age)',
+        insertQuery,
         {
           name: 'hans-trans',
           age: 23
         },
         { txId }
       );
+      await psqlDriver.commitTransaction(txId);
     } catch (e) {
       console.log(`${e}`);
-      psqlDriver.rollbackTransaction(txId);
+      rollBackNeeded = true;
     } finally {
-      psqlDriver.commitTransaction(txId);
+      if (rollBackNeeded) {
+        await psqlDriver.rollbackTransaction(txId);
+      }
     }
+  });
+
+  it('Inserts with PSQL Driver (using transaction, creating rollback)', async () => {
+    expect(!psqlDriver).equals(false);
+    if (!psqlDriver) {
+      expect.fail('PSQLDriver not initialized!');
+    }
+    const txId = await psqlDriver.startTransaction();
+
+    const res1 = await psqlDriver.processSql(
+      insertQuery,
+      {
+        name: 'toni2-trans',
+        age: 23
+      },
+      { txId }
+    );
+    // should create duplicate error!
+    const res2 = await psqlDriver.processSql(
+      insertQuery,
+      {
+        name: 'hans-trans',
+        age: 23
+      },
+      { txId }
+    );
+    const exception = res1.exception || res2.exception;
+    if (exception) {
+      await psqlDriver.rollbackTransaction(txId);
+    } else {
+      await psqlDriver.commitTransaction(txId);
+    }
+    expect(!!exception).equals(true);
+    let checkResult = await psqlDriver.processSql('select name from foobar where name=:name', { name: 'toni2-trans' });
+    expect(checkResult.table?.length === 0).equals(true);
+    checkResult = await psqlDriver.processSql('select name from foobar where name=:name', { name: 'hans-trans' });
+    expect(checkResult.table?.length === 1).equals(true);
   });
 });

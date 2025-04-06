@@ -1,17 +1,17 @@
-import { Context, DriverLight, Request, Result, ServiceEntry, SplitStatementFunction } from './types';
+import { Context, RqDriver, RqRequest, RqResult, RqServiceEntry, SplitStatementFunction } from './types';
 import { checkAccess, splitStatements } from './utils';
 
-export class RemoteQueryLight {
-  private readonly driver: DriverLight;
-  private serviceEntryMap: Record<string, ServiceEntry> = {};
+export class RemoteQuery {
+  private readonly driver: RqDriver;
+  private serviceEntryMap: Record<string, RqServiceEntry> = {};
   private splitStatementFunction: SplitStatementFunction = splitStatements;
 
-  public constructor(driver: DriverLight, serviceEntries: ServiceEntry[]) {
+  public constructor(driver: RqDriver, serviceEntries: RqServiceEntry[]) {
     this.driver = driver;
     serviceEntries.forEach((se) => (this.serviceEntryMap[se.serviceId] = se));
   }
 
-  public run = async (request: Request): Promise<Result> => {
+  public run = async (request: RqRequest): Promise<RqResult> => {
     const serviceEntry = this.serviceEntryMap[request.serviceId];
     if (!serviceEntry) {
       return { exception: `No service entry found for serviceId: ${request.serviceId}` };
@@ -23,7 +23,7 @@ export class RemoteQueryLight {
     const context: Partial<Context> = { serviceEntry };
     if (serviceEntry.statements) {
       const sqls = this.splitStatementFunction(serviceEntry.statements);
-      let result: Result = {};
+      let result: RqResult = {};
       for (const sql of sqls) {
         result = await this.driver.processSql(sql, request.parameters, context);
       }
@@ -40,5 +40,5 @@ export class RemoteQueryLight {
 }
 
 // After
-export const newRemoteQueryLight = (driver: DriverLight, serviceEntries: ServiceEntry[]): RemoteQueryLight =>
-  new RemoteQueryLight(driver, serviceEntries);
+export const newRemoteQuery = (driver: RqDriver, serviceEntries: RqServiceEntry[]): RemoteQuery =>
+  new RemoteQuery(driver, serviceEntries);

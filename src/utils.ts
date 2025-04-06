@@ -5,7 +5,7 @@ import {
   ExceptionResult,
   Logger,
   PRecord,
-  Result,
+  RqResult,
   ResultWithData,
   RqResultOrList,
   SplitStatementFunction,
@@ -63,7 +63,7 @@ export const noopLogger: Logger = {
   error: noop
 };
 
-export function toResult(list: SRecord[], name = 'toResult'): Result {
+export function toResult(list: SRecord[], name = 'toResult'): RqResult {
   const header: string[] = [];
   const table: string[][] = [];
   if (list && list.length > 0) {
@@ -120,9 +120,9 @@ export function toFirst<R = SRecord>(data: RqResultOrList): R | undefined {
   return undefined;
 }
 
-export const toSingle = (r: Result): string => r.table?.[0]?.[0] ?? '';
+export const toSingle = (r: RqResult): string => r.table?.[0]?.[0] ?? '';
 
-export const toResultWithData = (r: Result): ResultWithData | false =>
+export const toResultWithData = (r: RqResult): ResultWithData | false =>
   Array.isArray(r.header) && Array.isArray(r.table) ? (r as ResultWithData) : false;
 
 export const checkAccess = (providedRoles: string[] = [], requestedRoles: string[] = []): string => {

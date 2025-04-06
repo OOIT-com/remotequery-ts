@@ -1,7 +1,7 @@
 export type SRecord = Record<string, string>;
 export type PRecord = Record<string, boolean | string | number>;
 
-export type Request = {
+export type RqRequest = {
   userId?: string;
   roles?: string[];
   serviceId: string;
@@ -16,13 +16,13 @@ export type Context = {
   statusCode: number;
   includes: Record<string, number>;
   maxRows?: number;
-  serviceEntry?: ServiceEntry;
+  serviceEntry?: RqServiceEntry;
   txId?: string;
 };
 
-export type ServiceFun = (request: Request, context?: Partial<Context>) => Promise<Result>;
+export type ServiceFun = (request: RqRequest, context?: Partial<Context>) => Promise<RqResult>;
 
-export type ServiceEntry = {
+export type RqServiceEntry = {
   serviceId: string;
   roles?: string[];
   statements?: string;
@@ -36,7 +36,7 @@ export interface ExceptionResult {
   stack?: string;
 }
 
-export interface Result extends Partial<ExceptionResult> {
+export interface RqResult extends Partial<ExceptionResult> {
   name?: string;
   types?: string[];
   headerSql?: string[];
@@ -47,7 +47,7 @@ export interface Result extends Partial<ExceptionResult> {
   hasMore?: boolean;
 }
 
-export interface ResultWithData extends Result {
+export interface ResultWithData extends RqResult {
   header: string[];
   table: string[][];
 }
@@ -63,26 +63,27 @@ export interface ResultWithData extends Result {
 // };
 
 export interface RegistryObj {
-  request: Request;
-  currentResult: Result;
+  request: RqRequest;
+  currentResult: RqResult;
   statementNode: StatementNode;
-  serviceEntry: ServiceEntry;
+  serviceEntry: RqServiceEntry;
   context: Context;
 }
 
 export type LoggerLevel = 'debug' | 'info' | 'warn' | 'error';
 export type LoggerFun = (msg: string) => void;
 export type Logger = Record<LoggerLevel, LoggerFun>;
-export type ProcessSql = (sql: string, parameters?: PRecord, context?: Partial<Context>) => Promise<Result>;
-export type ProcessSqlDirect = (sql: string, values: string[], maxRows: number) => Promise<Result>;
-export type GetServiceEntry = (serviceId: string) => Promise<ServiceEntry | ExceptionResult>;
+export type ProcessSqlDirect = (sql: string, values: string[], maxRows: number) => Promise<RqResult>;
+export type GetServiceEntry = (serviceId: string) => Promise<RqServiceEntry | ExceptionResult>;
 
-export interface DriverLight {
+export type ProcessSql = (sql: string, parameters?: PRecord, context?: Partial<Context>) => Promise<RqResult>;
+
+export interface RqDriver {
   processSql: ProcessSql;
-  destroy: () => void;
+  destroy: () => Promise<void>;
 }
 
-export interface Driver<ConnectionType = any> extends DriverLight {
+export interface RqDriverExtended<ConnectionType = unknown> extends RqDriver {
   // processSql: ProcessSql;
   processSqlDirect: ProcessSqlDirect;
   getServiceEntry: GetServiceEntry;
@@ -97,8 +98,8 @@ export interface Driver<ConnectionType = any> extends DriverLight {
   // destroy: () => void;
 }
 
-export type RqResultOrList = Result | SRecord[];
-export type RegistryObjFun = (registerObj: RegistryObj) => Promise<Result | undefined>;
+export type RqResultOrList = RqResult | SRecord[];
+export type RegistryObjFun = (registerObj: RegistryObj) => Promise<RqResult | undefined>;
 export type StatementNode = {
   cmd: string;
   statement: string;
@@ -109,5 +110,5 @@ export type StatementNode = {
 export type EmtpyResult = Record<string, string>;
 
 export type SqlStatementWithFilename = { text: string; origin: string };
-export type SqlFilesContent = { serviceEntries: ServiceEntry[]; sqlStatements: SqlStatementWithFilename[] };
+export type SqlFilesContent = { serviceEntries: RqServiceEntry[]; sqlStatements: SqlStatementWithFilename[] };
 export type SplitStatementFunction = (s: string) => string[];

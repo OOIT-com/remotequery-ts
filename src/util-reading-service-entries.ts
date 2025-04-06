@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { ServiceEntry, SqlFilesContent, SqlStatementWithFilename, SRecord } from './types';
+import { RqServiceEntry, SqlFilesContent, SqlStatementWithFilename, SRecord } from './types';
 import { consoleLogger, trim } from './utils';
 
 const logger = consoleLogger;
@@ -12,7 +12,7 @@ export function processParameter(parameters: SRecord, line: string): void {
   }
 }
 
-const createServiceEntry = (parameters: SRecord, statements: string, origin: string): ServiceEntry | undefined => {
+const createServiceEntry = (parameters: SRecord, statements: string, origin: string): RqServiceEntry | undefined => {
   const serviceId = parameters.SERVICE_ID;
   const roles = (parameters.ROLES ?? '')
     .split(',')
@@ -30,8 +30,8 @@ const createServiceEntry = (parameters: SRecord, statements: string, origin: str
   return { serviceId, statements, roles, origin };
 };
 
-const processRqSqlText = (rqSqlText: string, source: string): ServiceEntry[] => {
-  const serviceEntries: ServiceEntry[] = [];
+const processRqSqlText = (rqSqlText: string, source: string): RqServiceEntry[] => {
+  const serviceEntries: RqServiceEntry[] = [];
   let parameters = {};
   let statements = '';
 
@@ -79,7 +79,7 @@ const processRqSqlText = (rqSqlText: string, source: string): ServiceEntry[] => 
   return serviceEntries;
 };
 export const readSqlFiles = (sqlDir: string): SqlFilesContent => {
-  const serviceEntries: ServiceEntry[] = [];
+  const serviceEntries: RqServiceEntry[] = [];
   const sqlStatements: SqlStatementWithFilename[] = [];
   const rc: SqlFilesContent = { serviceEntries, sqlStatements };
 

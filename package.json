@@ -1,7 +1,7 @@
 {
-  "name": "remotequery-light-ts",
-  "version": "0.0.1",
-  "description": "Remote Query Light for TypeScript",
+  "name": "remotequery-ts",
+  "version": "0.1.001",
+  "description": "Remote Query for TypeScript",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tonibuenter/remotequery-ts-light.git"
+    "url": "git+https://github.com/tonibuenter/remotequery-ts.git"
   },
   "files": [
     "lib/**/*"

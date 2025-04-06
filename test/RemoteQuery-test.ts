@@ -1,27 +1,27 @@
 // noinspection SqlResolve
 /* tslint:disable:no-console */
 
-import { DriverLight, newRemoteQueryLight, PRecord, ProcessSql, Result, ServiceEntry, splitStatements } from '../src';
+import { RqDriver, newRemoteQuery, PRecord, ProcessSql, RqResult, RqServiceEntry, splitStatements } from '../src';
 
-describe('RemoteQueryLight tests', () => {
+describe('RemoteQuery tests', () => {
   // before(() => {}); // the tests container
   it('new instance, shell test...', async () => {
     const processSql: ProcessSql = async (sql: string, parameters?: PRecord) => {
       console.log(sql, parameters);
 
-      const dummyResult: Result = { rowsAffected: 0 };
+      const dummyResult: RqResult = { rowsAffected: 0 };
       return dummyResult;
     };
 
-    const driver: DriverLight = {
+    const driver: RqDriver = {
       processSql,
-      destroy: () => {
+      destroy: async () => {
         console.log('destroy');
       }
     };
-    const serviceEntries: ServiceEntry[] = [];
+    const serviceEntries: RqServiceEntry[] = [];
 
-    const rq = newRemoteQueryLight(driver, serviceEntries);
+    const rq = newRemoteQuery(driver, serviceEntries);
     rq.setSplitStatementFunction(splitStatements);
 
     const result = await rq.run({ serviceId: 'dummy', parameters: {} });
